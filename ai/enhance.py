@@ -37,12 +37,12 @@ def parse_args():
 def process_single_item(chain, item: Dict, language: str) -> Dict:
     def is_sensitive(content: str) -> bool:
         """
-        调用 spam.huangpipip.workers.dev 接口检测内容是否包含敏感词。
+        调用 spam.dw-dengwei.workers.dev 接口检测内容是否包含敏感词。
         返回 True 表示触发敏感词，False 表示未触发。
         """
         try:
             resp = requests.post(
-                "https://spam.huangpipip.workers.dev",
+                "https://spam.dw-dengwei.workers.dev",
                 json={"text": content},
                 timeout=5
             )
