@@ -281,6 +281,7 @@ header {
   display: flex;
   align-items: center;
   gap: 20px;
+  margin-left: auto; 
 }
 
 .date-selector {
@@ -307,6 +308,7 @@ header {
   position: sticky;
   top: 70px;
   z-index: 10;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
   align-items: center; /* 居中显示 */
@@ -351,16 +353,12 @@ header {
 
 .category-scroll {
   display: flex;
-  overflow-x: auto;
+  flex-wrap: wrap;        /* 允许换行 */
   gap: 10px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
   width: 100%;
-  justify-content: flex-start; /* 改为左对齐 */
-  flex-wrap: nowrap; /* 禁止换行 */
-  white-space: nowrap; /* 确保内容不会换行 */
-  /* 添加鼠标滚轮横向滚动支持 */
-  overflow-y: hidden;
+  justify-content: flex-start;
+  overflow-x: hidden;     /* 不需要横向滚动 */
+  white-space: normal;    /* 允许换行 */
 }
 
 .filter-scroll {
