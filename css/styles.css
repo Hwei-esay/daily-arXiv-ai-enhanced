@@ -769,7 +769,7 @@ main {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   width: 90%;
-  max-width: 800px;
+  max-width: 1400px;
   margin: 60px auto;
   max-height: calc(100vh - 120px);
   display: flex;
@@ -2129,7 +2129,7 @@ footer {
 .pdf-preview-section {
   margin-top: 2rem;
   border-top: 1px solid #eee;
-  padding-top: 1rem;
+  padding-top: 0rem;
 }
 
 .pdf-header {

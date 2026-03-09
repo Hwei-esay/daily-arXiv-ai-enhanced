@@ -1334,7 +1334,7 @@ function showPaperDetails(paper, paperIndex) {
           </button>
         </div>
         <div class="pdf-container">
-          <iframe src="${paper.url.replace('abs', 'pdf')}" width="100%" height="800px" frameborder="0"></iframe>
+          <iframe src="${paper.url.replace('abs', 'pdf')}" width="100%" height="1200px" frameborder="0"></iframe>
         </div>
       </div>
     </div>
