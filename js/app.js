@@ -1370,6 +1370,7 @@ function showPaperDetails(paper, paperIndex) {
   
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
+  MathJax.typeset();
 }
 
 function closeModal() {

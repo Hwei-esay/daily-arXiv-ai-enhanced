@@ -1399,7 +1399,6 @@ footer {
 }
 
 .original-abstract {
-  font-style: italic;
   border-left: 3px solid var(--border-color);
   padding-left: 16px;
   color: var(--text-secondary);
