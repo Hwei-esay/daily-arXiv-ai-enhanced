@@ -93,6 +93,12 @@
                             <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor"/>
                         </svg>
                     </a>
+                    <button id="themeToggle" class="icon-button" title="Toggle dark theme">
+                        <svg id="themeIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- 月亮图标（暗色主题） -->
+                            <path d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.55,14.26,19,10.8,19c-5.5,0-10-4.5-10-10 c0-3.46,1.45-6.65,3.84-8.9C5.1,2.13,5.59,2.5,6.03,2.93C2.93,5.08,1,8.3,1,12c0,5.5,4.5,10,10,10c3.7,0,6.92-1.93,8.77-4.84 c0.43,0.44,0.91,0.79,1.47,1.07C19.55,21.45,16.26,23,12.5,23C6.15,23,1,17.85,1,11.5C1,7.74,2.55,4.45,4.93,2.26 c0.28,0.56,0.63,1.04,1.07,1.47C5.08,5.07,5.5,5.1,5.92,5.1C6.7,5.1,7.46,5.26,8.17,5.56C8.54,5.41,8.96,5.51,9.37,5.51z" fill="currentColor"/>
+                        </svg>
+                    </button>
                     <button id="logoutButton" onclick="Auth.logout()" class="icon-button" title="Logout" style="border: none; background: transparent; cursor: pointer; color: #e74c3c; display: none;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.59L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
@@ -111,13 +117,18 @@
                 </div>
             </div>
             <div class="category-nav">
-                <div class="category-label-container">
-                    <span class="category-nav-label">Category</span>
+                <details class="category-label-container">
+                    <summary class="category-nav-summary">
+                        <span class="category-nav-label">Category</span>
+                        <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </summary>
                     <div class="category-scroll">
                         <button class="category-button active" data-category="all">All</button>
                         <!-- 分类按钮将通过 JavaScript 动态生成 -->
                     </div>
-                </div>
+                </details>
                 <!-- Filter Tag Container -->
                 <div class="filter-label-container">
                     <span class="filter-nav-label">Filter</span>
@@ -229,6 +240,21 @@
         </svg>
     </button>
 
+    <script>
+      // 在桌面端默认展开分类下拉菜单
+      document.addEventListener('DOMContentLoaded', function() {
+        const categoryDetails = document.querySelector('details.category-label-container');
+        if (categoryDetails && window.innerWidth >= 769) {
+          categoryDetails.open = true;
+          // 可选：阻止在桌面端关闭
+          categoryDetails.addEventListener('toggle', function(e) {
+            if (window.innerWidth >= 769) {
+              this.open = true;
+            }
+          });
+        }
+      });
+    </script>
     <script src="js/app.js?v=1.0.1"></script>
 </body>
 </html> 

@@ -1566,14 +1566,14 @@ function togglePdfSize(button) {
   const iframe = pdfContainer.querySelector('iframe');
   const expandIcon = button.querySelector('.expand-icon');
   const collapseIcon = button.querySelector('.collapse-icon');
-  
+
   if (pdfContainer.classList.contains('expanded')) {
     // 恢复正常大小
     pdfContainer.classList.remove('expanded');
     iframe.style.height = '800px';
     expandIcon.style.display = 'block';
     collapseIcon.style.display = 'none';
-    
+
     // 移除遮罩层
     const overlay = document.querySelector('.pdf-overlay');
     if (overlay) {
@@ -1585,15 +1585,77 @@ function togglePdfSize(button) {
     iframe.style.height = '90vh';
     expandIcon.style.display = 'none';
     collapseIcon.style.display = 'block';
-    
+
     // 添加遮罩层
     const overlay = document.createElement('div');
     overlay.className = 'pdf-overlay';
     document.body.appendChild(overlay);
-    
+
     // 点击遮罩层时收起PDF
     overlay.addEventListener('click', () => {
       togglePdfSize(button);
     });
   }
 }
+
+// 主题切换功能
+const ThemeManager = {
+  STORAGE_KEY: 'theme',
+  THEMES: {
+    LIGHT: 'light',
+    DARK: 'dark'
+  },
+
+  init() {
+    this.loadTheme();
+    this.setupToggle();
+  },
+
+  loadTheme() {
+    const savedTheme = localStorage.getItem(this.STORAGE_KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // 默认使用保存的主题，否则根据系统偏好，否则使用亮色主题
+    let theme = savedTheme || (prefersDark ? this.THEMES.DARK : this.THEMES.LIGHT);
+    this.setTheme(theme);
+  },
+
+  setTheme(theme) {
+    const isDark = theme === this.THEMES.DARK;
+    document.body.classList.toggle('theme-dark', isDark);
+    localStorage.setItem(this.STORAGE_KEY, theme);
+    this.updateIcon(isDark);
+  },
+
+  updateIcon(isDark) {
+    const icon = document.getElementById('themeIcon');
+    if (!icon) return;
+
+    // 月亮图标路径（暗色主题）
+    const moonPath = 'M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.55,14.26,19,10.8,19c-5.5,0-10-4.5-10-10 c0-3.46,1.45-6.65,3.84-8.9C5.1,2.13,5.59,2.5,6.03,2.93C2.93,5.08,1,8.3,1,12c0,5.5,4.5,10,10,10c3.7,0,6.92-1.93,8.77-4.84 c0.43,0.44,0.91,0.79,1.47,1.07C19.55,21.45,16.26,23,12.5,23C6.15,23,1,17.85,1,11.5C1,7.74,2.55,4.45,4.93,2.26 c0.28,0.56,0.63,1.04,1.07,1.47C5.08,5.07,5.5,5.1,5.92,5.1C6.7,5.1,7.46,5.26,8.17,5.56C8.54,5.41,8.96,5.51,9.37,5.51z';
+    // 太阳图标路径（亮色主题）
+    const sunPath = 'M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5S14.76,7,12,7z M12,2L9,5l3,3l3-3L12,2z M12,22l3-3l-3-3l-3,3L12,22z M22,12l-3-3l-3,3l3,3L22,12z M2,12l3,3l3-3l-3-3L2,12z M5,9l3-3l-3-3L2,5L5,9z M19,9l3-3l-3-3l-3,3L19,9z M5,15l-3,3l3,3l3-3L5,15z M19,15l-3,3l3,3l3-3L19,15z';
+
+    const path = icon.querySelector('path');
+    if (path) {
+      path.setAttribute('d', isDark ? sunPath : moonPath);
+      // 更新提示文本
+      icon.closest('button').setAttribute('title', isDark ? '切换到亮色主题' : '切换到深色主题');
+    }
+  },
+
+  setupToggle() {
+    const toggleButton = document.getElementById('themeToggle');
+    if (toggleButton) {
+      toggleButton.addEventListener('click', () => {
+        const isDark = document.body.classList.contains('theme-dark');
+        this.setTheme(isDark ? this.THEMES.LIGHT : this.THEMES.DARK);
+      });
+    }
+  }
+};
+
+// 初始化主题管理器
+document.addEventListener('DOMContentLoaded', () => {
+  ThemeManager.init();
+});

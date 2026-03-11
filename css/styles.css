@@ -328,6 +328,64 @@ header {
   position: relative;
 }
 
+/* 分类下拉菜单样式 */
+details.category-label-container > summary {
+  list-style: none;
+}
+details.category-label-container > summary::-webkit-details-marker {
+  display: none;
+}
+
+.category-nav-summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.dropdown-icon {
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+details[open].category-label-container .dropdown-icon {
+  transform: rotate(180deg);
+}
+
+/* 桌面端：保持展开状态，隐藏下拉图标 */
+@media (min-width: 769px) {
+  details.category-label-container {
+    display: block;
+  }
+  .category-nav-summary .dropdown-icon {
+    display: none;
+  }
+  details.category-label-container .category-scroll {
+    display: flex;
+  }
+}
+
+/* 移动端：可折叠样式 */
+@media (max-width: 768px) {
+  details.category-label-container {
+    display: block;
+    width: 100%;
+  }
+  .category-nav-summary {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 16px;
+  }
+  details.category-label-container .category-scroll {
+    display: none;
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    gap: 8px;
+  }
+  details[open].category-label-container .category-scroll {
+    display: flex;
+  }
+}
+
+
 .category-nav-label, .filter-nav-label {
   font-weight: 600;
   background: var(--gradient-primary);
@@ -1239,11 +1297,15 @@ input:checked + .toggle-slider:before {
     margin-left: auto;
   }
   
-  .category-scroll {
+  details.category-label-container .category-scroll {
     padding: 8px 16px;
     max-width: 100%; /* 在移动端占满宽度 */
     justify-content: flex-start; /* 在移动端左对齐 */
-    flex-wrap: nowrap; /* 确保不换行 */
+    flex-wrap: wrap; /* 允许换行 */
+    display: none;
+  }
+  details[open].category-label-container .category-scroll {
+    display: flex;
   }
   
   .filter-scroll {
@@ -2323,3 +2385,27 @@ footer {
   display: flex;
   align-items: center;
 }
+
+/* 深色主题变量覆盖 */
+body.theme-dark {
+  --background-color: #121826;
+  --card-bg-color: #1e293b;
+  --text-color: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --border-color: #334155;
+  --border-accent: rgba(102, 126, 234, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.5);
+  --background-hover: #2d3748;
+}
+
+body.theme-dark header {
+  background-color: rgba(18, 24, 38, 0.8);
+}
+
+body.theme-dark .category-nav {
+  background-color: rgba(18, 24, 38, 0.8);
+}
+
