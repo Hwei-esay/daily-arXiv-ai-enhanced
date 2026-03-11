@@ -1288,6 +1288,14 @@ input:checked + .toggle-slider:before {
     transform: none;
     margin-bottom: 8px;
   }
+
+  .site-title {
+    display: none;
+  }
+
+  .logo-image {
+    height: 30px;
+  }
   
   .header-left {
     display: none;
