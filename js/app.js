@@ -71,6 +71,59 @@ function initPaperModalResize() {
   window.addEventListener('resize', clampPaperModalSizeToViewport);
 }
 
+function initAutoCollapseHeader() {
+  const header = document.querySelector('header');
+  if (!header) return;
+
+  const COLLAPSE_SCROLL_TOP = 120;
+  const SCROLL_DELTA_THRESHOLD = 12;
+  let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+
+  const setCollapsed = (collapsed) => {
+    document.body.classList.toggle('header-collapsed', collapsed);
+  };
+
+  const handleScroll = () => {
+    const scrollTop = Math.max(
+      window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0,
+      0
+    );
+    const delta = scrollTop - lastScrollTop;
+    const paperModal = document.getElementById('paperModal');
+    const datePickerModal = document.getElementById('datePickerModal');
+    const shouldKeepExpanded =
+      scrollTop < COLLAPSE_SCROLL_TOP ||
+      (paperModal && paperModal.classList.contains('active')) ||
+      (datePickerModal && datePickerModal.classList.contains('active'));
+
+    if (shouldKeepExpanded) {
+      setCollapsed(false);
+      lastScrollTop = scrollTop;
+      return;
+    }
+
+    if (Math.abs(delta) < SCROLL_DELTA_THRESHOLD) {
+      return;
+    }
+
+    if (delta > 0) {
+      setCollapsed(true);
+    } else {
+      setCollapsed(false);
+    }
+
+    lastScrollTop = scrollTop;
+  };
+
+  handleScroll();
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  window.addEventListener('resize', () => {
+    if ((window.pageYOffset || document.documentElement.scrollTop || 0) < COLLAPSE_SCROLL_TOP) {
+      setCollapsed(false);
+    }
+  }, { passive: true });
+}
+
 function startPaperModalResize(event) {
   if (!isPaperModalResizeEnabled() || event.button !== 0) return;
 
@@ -420,6 +473,7 @@ function initEventListeners() {
   // 其他原有的事件监听器
   document.getElementById('closeModal').addEventListener('click', closeModal);
   initPaperModalResize();
+  initAutoCollapseHeader();
   
   document.querySelector('.paper-modal').addEventListener('click', (event) => {
     const modal = document.querySelector('.paper-modal');

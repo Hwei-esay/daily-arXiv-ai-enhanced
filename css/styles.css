@@ -153,6 +153,15 @@ header {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-color);
+  max-height: 720px;
+  overflow: hidden;
+  will-change: max-height;
+  transition: max-height 0.28s ease, border-color 0.28s ease, background-color 0.28s ease;
+}
+
+body.header-collapsed header {
+  max-height: 0;
+  border-bottom-color: transparent;
 }
 
 .header-content {
