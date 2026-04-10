@@ -443,7 +443,7 @@ function initEventListeners() {
     }
   });
   
-  // 添加键盘事件监听 - Esc 键关闭模态框，左右箭头键切换论文，R 键显示随机论文
+  // 添加键盘事件监听 - Esc 键关闭模态框，[ 和 ] 切换论文，R 键显示随机论文
   document.addEventListener('keydown', (event) => {
     // 检查是否有输入框或文本区域处于焦点状态
     const activeElement = document.activeElement;
@@ -466,15 +466,20 @@ function initEventListeners() {
         toggleDatePicker();
       }
     }
-    // 左右箭头键导航论文（仅在论文模态框打开时）
-    else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    // [ 和 ] 导航论文（仅在论文模态框打开时）
+    else if (
+      event.key === '[' ||
+      event.key === ']' ||
+      event.code === 'BracketLeft' ||
+      event.code === 'BracketRight'
+    ) {
       const paperModal = document.getElementById('paperModal');
       if (paperModal.classList.contains('active')) {
         event.preventDefault(); // 防止页面滚动
         
-        if (event.key === 'ArrowLeft') {
+        if (event.key === '[' || event.code === 'BracketLeft') {
           navigateToPreviousPaper();
-        } else if (event.key === 'ArrowRight') {
+        } else if (event.key === ']' || event.code === 'BracketRight') {
           navigateToNextPaper();
         }
       }
