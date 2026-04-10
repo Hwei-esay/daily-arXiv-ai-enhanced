@@ -826,13 +826,21 @@ main {
   background-color: var(--card-bg-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
+  box-sizing: border-box;
   width: 90%;
-  max-width: 1400px;
+  max-width: min(1400px, calc(100vw - 32px));
+  min-width: 680px;
+  min-height: 420px;
   margin: 60px auto;
   max-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
+  position: relative;
   animation: modalFadeIn 0.3s ease;
+}
+
+.paper-modal-content.is-resizing {
+  animation: none;
 }
 
 @keyframes modalFadeIn {
@@ -882,7 +890,7 @@ main {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 16px;
+  padding: 16px 26px 26px 16px;
   border-top: 1px solid var(--border-color);
 }
 
@@ -959,6 +967,47 @@ main {
 .paper-modal-footer .button.icon-button:hover::after {
   opacity: 1;
   visibility: visible;
+}
+
+.paper-modal-resize-handle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  border-radius: 4px;
+  color: rgba(107, 114, 128, 0.9);
+  z-index: 2;
+  touch-action: none;
+}
+
+.paper-modal-resize-handle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg,
+      transparent 0 46%,
+      currentColor 46% 52%,
+      transparent 52% 64%,
+      currentColor 64% 70%,
+      transparent 70% 82%,
+      currentColor 82% 88%,
+      transparent 88% 100%);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.paper-modal-resize-handle:hover::before {
+  opacity: 1;
+}
+
+.paper-modal-resizing,
+.paper-modal-resizing * {
+  cursor: nwse-resize !important;
+  user-select: none !important;
 }
 
 .navigation-hint {
@@ -1374,7 +1423,17 @@ input:checked + .toggle-slider:before {
   
   .paper-modal-content {
     width: 95%;
+    min-width: 0;
+    min-height: 0;
     max-height: 85vh;
+  }
+
+  .paper-modal-footer {
+    padding: 16px;
+  }
+
+  .paper-modal-resize-handle {
+    display: none;
   }
   
   .paper-sections {
@@ -2416,4 +2475,3 @@ body.theme-dark header {
 body.theme-dark .category-nav {
   background-color: rgba(18, 24, 38, 0.8);
 }
-

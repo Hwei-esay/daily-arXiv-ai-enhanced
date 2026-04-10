@@ -14,6 +14,160 @@ let currentFilteredPapers = []; // 当前过滤后的论文列表
 let textSearchQuery = ''; // 实时文本搜索查询
 let previousActiveKeywords = null; // 文本搜索激活时，暂存之前的关键词激活集合
 let previousActiveAuthors = null; // 文本搜索激活时，暂存之前的作者激活集合
+const PAPER_MODAL_RESIZE_CONSTRAINTS = {
+  minWidth: 680,
+  minHeight: 420,
+  viewportHorizontalMargin: 32,
+  viewportVerticalMargin: 120
+};
+const paperModalResizeState = {
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  startWidth: 0,
+  startHeight: 0,
+  modal: null,
+  content: null,
+  handle: null
+};
+
+function clampValue(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function isPaperModalResizeEnabled() {
+  return window.innerWidth > 768;
+}
+
+function getPaperModalResizeBounds() {
+  const maxWidth = Math.max(360, window.innerWidth - PAPER_MODAL_RESIZE_CONSTRAINTS.viewportHorizontalMargin);
+  const maxHeight = Math.max(320, window.innerHeight - PAPER_MODAL_RESIZE_CONSTRAINTS.viewportVerticalMargin);
+
+  return {
+    minWidth: Math.min(PAPER_MODAL_RESIZE_CONSTRAINTS.minWidth, maxWidth),
+    minHeight: Math.min(PAPER_MODAL_RESIZE_CONSTRAINTS.minHeight, maxHeight),
+    maxWidth,
+    maxHeight
+  };
+}
+
+function initPaperModalResize() {
+  const modal = document.getElementById('paperModal');
+  if (!modal) return;
+
+  const content = modal.querySelector('.paper-modal-content');
+  const handle = modal.querySelector('.paper-modal-resize-handle');
+  if (!content || !handle) return;
+
+  paperModalResizeState.modal = modal;
+  paperModalResizeState.content = content;
+  paperModalResizeState.handle = handle;
+
+  handle.addEventListener('pointerdown', startPaperModalResize);
+  window.addEventListener('pointermove', resizePaperModal);
+  window.addEventListener('pointerup', stopPaperModalResize);
+  window.addEventListener('pointercancel', stopPaperModalResize);
+  window.addEventListener('resize', clampPaperModalSizeToViewport);
+}
+
+function startPaperModalResize(event) {
+  if (!isPaperModalResizeEnabled() || event.button !== 0) return;
+
+  const { modal, content, handle } = paperModalResizeState;
+  if (!modal || !content || !handle || !modal.classList.contains('active')) return;
+
+  event.preventDefault();
+
+  const rect = content.getBoundingClientRect();
+  paperModalResizeState.active = true;
+  paperModalResizeState.pointerId = event.pointerId;
+  paperModalResizeState.startX = event.clientX;
+  paperModalResizeState.startY = event.clientY;
+  paperModalResizeState.startWidth = rect.width;
+  paperModalResizeState.startHeight = rect.height;
+
+  content.classList.add('is-resizing');
+  document.body.classList.add('paper-modal-resizing');
+
+  if (handle.setPointerCapture) {
+    handle.setPointerCapture(event.pointerId);
+  }
+}
+
+function resizePaperModal(event) {
+  if (!paperModalResizeState.active || event.pointerId !== paperModalResizeState.pointerId) return;
+
+  const { content } = paperModalResizeState;
+  if (!content) return;
+
+  event.preventDefault();
+
+  const bounds = getPaperModalResizeBounds();
+  const nextWidth = clampValue(
+    paperModalResizeState.startWidth + (event.clientX - paperModalResizeState.startX),
+    bounds.minWidth,
+    bounds.maxWidth
+  );
+  const nextHeight = clampValue(
+    paperModalResizeState.startHeight + (event.clientY - paperModalResizeState.startY),
+    bounds.minHeight,
+    bounds.maxHeight
+  );
+
+  content.style.width = `${nextWidth}px`;
+  content.style.height = `${nextHeight}px`;
+}
+
+function stopPaperModalResize(event) {
+  if (!paperModalResizeState.active) return;
+  if (event && event.pointerId !== paperModalResizeState.pointerId) return;
+
+  const { content, handle } = paperModalResizeState;
+  const activePointerId = paperModalResizeState.pointerId;
+
+  paperModalResizeState.active = false;
+  paperModalResizeState.pointerId = null;
+
+  if (content) {
+    content.classList.remove('is-resizing');
+  }
+  document.body.classList.remove('paper-modal-resizing');
+
+  if (handle && handle.hasPointerCapture && activePointerId !== null && handle.hasPointerCapture(activePointerId)) {
+    handle.releasePointerCapture(activePointerId);
+  }
+}
+
+function clampPaperModalSizeToViewport() {
+  const { modal, content } = paperModalResizeState;
+  if (!modal || !content) return;
+  if (!content.style.width && !content.style.height) return;
+
+  if (!isPaperModalResizeEnabled()) {
+    resetPaperModalSize();
+    return;
+  }
+
+  const rect = content.getBoundingClientRect();
+  const bounds = getPaperModalResizeBounds();
+
+  content.style.width = `${clampValue(rect.width, bounds.minWidth, bounds.maxWidth)}px`;
+  content.style.height = `${clampValue(rect.height, bounds.minHeight, bounds.maxHeight)}px`;
+}
+
+function resetPaperModalSize() {
+  const { content } = paperModalResizeState;
+
+  stopPaperModalResize();
+  document.body.classList.remove('paper-modal-resizing');
+
+  if (!content) return;
+
+  content.classList.remove('is-resizing');
+  content.style.width = '';
+  content.style.height = '';
+}
 
 // 加载用户的关键词设置
 function loadUserKeywords() {
@@ -265,6 +419,7 @@ function initEventListeners() {
   
   // 其他原有的事件监听器
   document.getElementById('closeModal').addEventListener('click', closeModal);
+  initPaperModalResize();
   
   document.querySelector('.paper-modal').addEventListener('click', (event) => {
     const modal = document.querySelector('.paper-modal');
@@ -1460,6 +1615,7 @@ function closeModal() {
   
   // 重置模态框的滚动位置
   modalBody.scrollTop = 0;
+  resetPaperModalSize();
   
   modal.classList.remove('active');
   document.body.style.overflow = '';
