@@ -149,7 +149,7 @@ cd ..
 
 # 第五步：更新文件列表 / Step 5: Update file list
 echo "步骤5：更新文件列表... / Step 5: Updating file list..."
-ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
+find data -maxdepth 1 -type f -name '*.jsonl' | sed 's|^data/||' | sort > assets/file-list.txt
 echo "✅ 文件列表更新完成 / File list updated"
 
 # 完成总结 / Completion summary

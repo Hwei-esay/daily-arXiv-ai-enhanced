@@ -61,9 +61,7 @@ function toggleDatePicker() {
     document.body.style.overflow = 'hidden';
     
     // 重新初始化日期选择器以确保它反映最新的可用日期
-    if (flatpickrInstance) {
-      flatpickrInstance.setDate(currentDate, false);
-    }
+    syncDatePickerSelection();
   } else {
     document.body.style.overflow = '';
   }
@@ -143,46 +141,90 @@ function selectLanguageForDate(date, preferredLanguage = null) {
   return availableLanguages.includes('English') ? 'English' : availableLanguages[0];
 }
 
+function buildAvailableDateMetadata(files) {
+  const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(English|Chinese)\.jsonl/;
+  const dateLanguageMap = new Map();
+  const dates = [];
+
+  files.forEach(file => {
+    const fileName = typeof file === 'string' ? file.trim() : file?.name;
+    if (!fileName) {
+      return;
+    }
+
+    const match = fileName.match(dateRegex);
+    if (match && match[1] && match[2]) {
+      const date = match[1];
+      const language = match[2];
+
+      if (!dateLanguageMap.has(date)) {
+        dateLanguageMap.set(date, []);
+        dates.push(date);
+      }
+      dateLanguageMap.get(date).push(language);
+    }
+  });
+
+  return {
+    dateLanguageMap,
+    availableDates: [...new Set(dates)].sort((a, b) => new Date(b) - new Date(a))
+  };
+}
+
+function applyAvailableDateMetadata(metadata) {
+  window.dateLanguageMap = metadata.dateLanguageMap;
+  availableDates = metadata.availableDates;
+  initDatePicker();
+  return availableDates;
+}
+
+async function fetchAvailableDatesFromFileList() {
+  const fileListUrl = DATA_CONFIG.getDataUrl('assets/file-list.txt');
+  const response = await fetch(fileListUrl);
+  if (!response.ok) {
+    throw new Error(`Error fetching file list: ${response.status}`);
+  }
+
+  const text = await response.text();
+  const files = text.trim() ? text.trim().split('\n') : [];
+  return buildAvailableDateMetadata(files);
+}
+
+async function fetchAvailableDatesFromGitHubApi() {
+  const apiUrl = `https://api.github.com/repos/${DATA_CONFIG.repoOwner}/${DATA_CONFIG.repoName}/contents/data?ref=${DATA_CONFIG.dataBranch}`;
+  const response = await fetch(apiUrl);
+  if (!response.ok) {
+    throw new Error(`Error fetching GitHub data listing: ${response.status}`);
+  }
+
+  const files = await response.json();
+  return buildAvailableDateMetadata(Array.isArray(files) ? files : []);
+}
+
 async function fetchAvailableDates() {
   try {
-    // 从 data 分支获取文件列表
-    const fileListUrl = DATA_CONFIG.getDataUrl('assets/file-list.txt');
-    const response = await fetch(fileListUrl);
-    if (!response.ok) {
-      console.error('Error fetching file list:', response.status);
+    const fileListMetadata = await fetchAvailableDatesFromFileList();
+
+    if (fileListMetadata.availableDates.length > 1) {
+      return applyAvailableDateMetadata(fileListMetadata);
+    }
+
+    const apiMetadata = await fetchAvailableDatesFromGitHubApi();
+    if (apiMetadata.availableDates.length > fileListMetadata.availableDates.length) {
+      return applyAvailableDateMetadata(apiMetadata);
+    }
+
+    return applyAvailableDateMetadata(fileListMetadata);
+  } catch (error) {
+    console.error('获取可用日期失败，尝试 GitHub API 回退:', error);
+
+    try {
+      const apiMetadata = await fetchAvailableDatesFromGitHubApi();
+      return applyAvailableDateMetadata(apiMetadata);
+    } catch (apiError) {
+      console.error('GitHub API 回退也失败:', apiError);
       return [];
     }
-    const text = await response.text();
-    const files = text.trim().split('\n');
-
-    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(English|Chinese)\.jsonl/;
-    const dateLanguageMap = new Map(); // Store date -> available languages
-    const dates = [];
-    
-    files.forEach(file => {
-      const match = file.match(dateRegex);
-      if (match && match[1] && match[2]) {
-        const date = match[1];
-        const language = match[2];
-        
-        if (!dateLanguageMap.has(date)) {
-          dateLanguageMap.set(date, []);
-          dates.push(date);
-        }
-        dateLanguageMap.get(date).push(language);
-      }
-    });
-    
-    // Store the language mapping globally for later use
-    window.dateLanguageMap = dateLanguageMap;
-    availableDates = [...new Set(dates)];
-    availableDates.sort((a, b) => new Date(b) - new Date(a));
-
-    initDatePicker(); // Assuming this function uses availableDates
-
-    return availableDates;
-  } catch (error) {
-    console.error('获取可用日期失败:', error);
   }
 }
 
@@ -203,14 +245,14 @@ function initDatePicker() {
   flatpickrInstance = flatpickr(datepickerInput, {
     inline: true,
     dateFormat: "Y-m-d",
+    mode: isRangeMode ? 'range' : 'single',
     defaultDate: availableDates[0],
     enable: [
       function(date) {
-        // 只启用有效日期
         const dateStr = date.getFullYear() + "-" + 
                         String(date.getMonth() + 1).padStart(2, '0') + "-" + 
                         String(date.getDate()).padStart(2, '0');
-        return !!enabledDatesMap[dateStr];
+        return dateStr <= availableDates[0];
       }
     ],
     onChange: function(selectedDates, dateStr) {
@@ -238,6 +280,44 @@ function initDatePicker() {
   }
 }
 
+function parseCurrentDateRange(dateValue) {
+  if (typeof dateValue !== 'string') {
+    return null;
+  }
+
+  const rangeMatch = dateValue.match(/^(\d{4}-\d{2}-\d{2})\s(?:to|-)\s(\d{4}-\d{2}-\d{2})$/);
+  if (!rangeMatch) {
+    return null;
+  }
+
+  return [rangeMatch[1], rangeMatch[2]];
+}
+
+function getDatePickerSelection() {
+  if (isRangeMode) {
+    const range = parseCurrentDateRange(currentDate);
+    if (range) {
+      return range;
+    }
+    return [];
+  }
+
+  const range = parseCurrentDateRange(currentDate);
+  if (range) {
+    return range[0];
+  }
+
+  return currentDate && availableDates.includes(currentDate) ? currentDate : availableDates[0];
+}
+
+function syncDatePickerSelection() {
+  if (!flatpickrInstance) {
+    return;
+  }
+
+  flatpickrInstance.setDate(getDatePickerSelection(), false);
+}
+
 function formatDateForAPI(date) {
   return date.getFullYear() + "-" + 
          String(date.getMonth() + 1).padStart(2, '0') + "-" + 
@@ -247,8 +327,9 @@ function formatDateForAPI(date) {
 function toggleRangeMode() {
   isRangeMode = document.getElementById('dateRangeMode').checked;
   
-  if (flatpickrInstance) {
-    flatpickrInstance.set('mode', isRangeMode ? 'range' : 'single');
+  if (availableDates.length > 0) {
+    initDatePicker();
+    syncDatePickerSelection();
   }
 }
 
@@ -267,7 +348,7 @@ async function loadPapersByDateRange(startDate, endDate) {
     currentDate = startDate;
     document.getElementById('currentDate').textContent = formatDate(startDate);
   } else {
-    currentDate = `${startDate} - ${endDate}`;
+    currentDate = `${startDate} to ${endDate}`;
     document.getElementById('currentDate').textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
   }
   

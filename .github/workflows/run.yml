@@ -150,13 +150,6 @@ jobs:
         fi
         echo "Markdown转换完成 / Markdown conversion completed"
         
-    - name: Update file list
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        echo "更新文件列表... / Updating file list..."
-        ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
-        echo "文件列表更新完成 / File list updated"
-
     - name: Generate password hash and inject into config
       if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
@@ -287,11 +280,9 @@ jobs:
         
         # 创建临时目录保存数据文件 / Create temporary directory to save data files
         mkdir -p /tmp/data_files/data
-        mkdir -p /tmp/data_files/assets
         
         # 复制数据文件到临时目录 / Copy data files to temporary directory
         cp -r data/* /tmp/data_files/data/ 2>/dev/null || true
-        cp assets/file-list.txt /tmp/data_files/assets/ 2>/dev/null || true
         
         echo "数据文件已保存到临时目录 / Data files saved to temporary directory"
 
@@ -335,7 +326,10 @@ jobs:
         # 确保目录存在 / Ensure directories exist
         mkdir -p data assets
         cp -r /tmp/data_files/data/* data/ 2>/dev/null || true
-        cp /tmp/data_files/assets/file-list.txt assets/ 2>/dev/null || true
+
+        # 在 data 分支恢复完整历史数据后重新生成文件列表
+        # Regenerate the file list after the full data branch history is restored
+        find data -maxdepth 1 -type f -name '*.jsonl' | sed 's|^data/||' | sort > assets/file-list.txt
         
         # 只添加数据文件 / Only add data files
         git add data/* 2>/dev/null || true
