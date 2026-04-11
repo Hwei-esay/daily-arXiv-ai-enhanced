@@ -869,12 +869,38 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   position: relative;
 }
 
 .paper-modal-header h2 {
   font-size: 20px;
   font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.paper-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.paper-modal-header .button.icon-button {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+}
+
+.paper-modal-header .button.icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paper-modal-header .button.icon-button:disabled:hover {
+  background: none;
+  transform: none;
 }
 
 .paper-modal-body {
@@ -914,6 +940,14 @@ main {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.paper-modal-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .paper-modal-footer .button.icon-button {
@@ -976,6 +1010,20 @@ main {
 .paper-modal-footer .button.icon-button:hover::after {
   opacity: 1;
   visibility: visible;
+}
+
+.paper-modal-footer .button.icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paper-modal-footer .button.icon-button:disabled:hover {
+  color: inherit;
+  transform: none;
+}
+
+.paper-modal-footer .button.icon-button:disabled::after {
+  display: none;
 }
 
 .paper-modal-resize-handle {
@@ -1439,6 +1487,20 @@ input:checked + .toggle-slider:before {
 
   .paper-modal-footer {
     padding: 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .paper-modal-buttons {
+    justify-content: flex-start;
+  }
+
+  .paper-modal-header {
+    align-items: flex-start;
+  }
+
+  .paper-modal-header-actions {
+    gap: 6px;
   }
 
   .paper-modal-resize-handle {

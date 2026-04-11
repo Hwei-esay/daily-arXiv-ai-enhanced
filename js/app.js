@@ -472,8 +472,15 @@ function initEventListeners() {
   
   // 其他原有的事件监听器
   document.getElementById('closeModal').addEventListener('click', closeModal);
+  document.querySelectorAll('[data-paper-nav="prev"]').forEach(button => {
+    button.addEventListener('click', navigateToPreviousPaper);
+  });
+  document.querySelectorAll('[data-paper-nav="next"]').forEach(button => {
+    button.addEventListener('click', navigateToNextPaper);
+  });
   initPaperModalResize();
   initAutoCollapseHeader();
+  updatePaperNavigationControls();
   
   document.querySelector('.paper-modal').addEventListener('click', (event) => {
     const modal = document.querySelector('.paper-modal');
@@ -1430,6 +1437,7 @@ function renderPapers() {
   
   // 存储当前过滤后的论文列表，用于箭头键导航
   currentFilteredPapers = [...filteredPapers];
+  updatePaperNavigationControls();
   
   if (filteredPapers.length === 0) {
     container.innerHTML = `
@@ -1661,7 +1669,10 @@ function showPaperDetails(paper, paperIndex) {
   const paperPosition = document.getElementById('paperPosition');
   if (paperPosition && currentFilteredPapers.length > 0) {
     paperPosition.textContent = `${currentPaperIndex + 1} / ${currentFilteredPapers.length}`;
+  } else if (paperPosition) {
+    paperPosition.textContent = '-';
   }
+  updatePaperNavigationControls();
   
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -1682,7 +1693,7 @@ function closeModal() {
 
 // 导航到上一篇论文
 function navigateToPreviousPaper() {
-  if (currentFilteredPapers.length === 0) return;
+  if (currentFilteredPapers.length <= 1) return;
   
   currentPaperIndex = currentPaperIndex > 0 ? currentPaperIndex - 1 : currentFilteredPapers.length - 1;
   const paper = currentFilteredPapers[currentPaperIndex];
@@ -1691,11 +1702,21 @@ function navigateToPreviousPaper() {
 
 // 导航到下一篇论文
 function navigateToNextPaper() {
-  if (currentFilteredPapers.length === 0) return;
+  if (currentFilteredPapers.length <= 1) return;
   
   currentPaperIndex = currentPaperIndex < currentFilteredPapers.length - 1 ? currentPaperIndex + 1 : 0;
   const paper = currentFilteredPapers[currentPaperIndex];
   showPaperDetails(paper, currentPaperIndex + 1);
+}
+
+function updatePaperNavigationControls() {
+  const isNavigationAvailable = currentFilteredPapers.length > 1;
+  document.querySelectorAll('[data-paper-nav="prev"]').forEach(button => {
+    button.disabled = !isNavigationAvailable;
+  });
+  document.querySelectorAll('[data-paper-nav="next"]').forEach(button => {
+    button.disabled = !isNavigationAvailable;
+  });
 }
 
 // 显示随机论文
