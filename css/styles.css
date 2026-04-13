@@ -491,6 +491,8 @@ details[open].category-label-container .dropdown-icon {
   -ms-overflow-style: none;
   scrollbar-width: none;
   width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
   justify-content: flex-start; /* 改为左对齐 */
   flex-wrap: nowrap; /* 禁止换行 */
   white-space: nowrap; /* 确保内容不会换行 */
@@ -504,6 +506,8 @@ details[open].category-label-container .dropdown-icon {
   align-items: center;
   gap: 8px;
   margin-right: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .text-search .search-input-wrapper {
@@ -514,6 +518,7 @@ details[open].category-label-container .dropdown-icon {
   border: 1px solid var(--border-accent);
   border-radius: 16px;
   padding: 4px 8px;
+  flex: 0 0 auto;
 }
 
 #textSearchInput {
@@ -522,7 +527,8 @@ details[open].category-label-container .dropdown-icon {
   background: transparent;
   font-size: 14px;
   color: var(--text-color);
-  width: 220px;
+  width: clamp(160px, 22vw, 220px);
+  min-width: 0;
 }
 
 .text-search .clear-x {
@@ -547,6 +553,7 @@ details[open].category-label-container .dropdown-icon {
 .filter-label-container {
   display: flex;
   align-items: center;
+  gap: 8px;
   max-width: 1440px; /* 与main容器的max-width相同 */
   width: 100%;
   padding: 10px 24px 5px 24px; /* 与category标签容器保持一致 */
@@ -1441,6 +1448,26 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 768px) {
+  .filter-label-container {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 16px 5px 16px;
+  }
+
+  .text-search {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .text-search .search-input-wrapper {
+    width: 100%;
+  }
+
+  #textSearchInput {
+    width: 100%;
+  }
+
   .header-content {
     padding: 12px 16px;
     flex-wrap: wrap;
@@ -1506,6 +1533,8 @@ input:checked + .toggle-slider:before {
   }
   
   .filter-scroll {
+    width: 100%;
+    min-width: 100%;
     padding: 0 16px 8px;
     margin-top: -4px;
     gap: 6px;

@@ -926,7 +926,7 @@ function initEventListeners() {
     });
   }
 
-  // 文本搜索：放大镜切换显示输入框
+  // 文本搜索：搜索框始终显示，放大镜按钮仅用于聚焦输入框
   const searchToggle = document.getElementById('textSearchToggle');
   const searchWrapper = document.querySelector('#textSearchContainer .search-input-wrapper');
   const searchInput = document.getElementById('textSearchInput');
@@ -935,7 +935,6 @@ function initEventListeners() {
   if (searchToggle && searchWrapper && searchInput && searchClear) {
     searchToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      searchWrapper.style.display = 'flex';
       searchInput.focus();
     });
 
@@ -972,8 +971,6 @@ function initEventListeners() {
         }
         previousActiveKeywords = null;
         previousActiveAuthors = null;
-        // 文本为空时自动隐藏输入框
-        searchWrapper.style.display = 'none';
       }
 
       // 控制清除按钮显示
@@ -1004,19 +1001,8 @@ function initEventListeners() {
       previousActiveKeywords = null;
       previousActiveAuthors = null;
       renderPapers();
-      // 清空后隐藏输入框
-      searchWrapper.style.display = 'none';
+      searchInput.focus();
     });
-
-    // 失焦时：若文本为空则隐藏输入框（保持有文本时不隐藏）
-    searchInput.addEventListener('blur', () => {
-      const value = searchInput.value.trim();
-      if (value.length === 0) {
-        searchWrapper.style.display = 'none';
-      }
-    });
-
-    // 点击其他地方不隐藏输入框（需求4），因此不添加blur隐藏逻辑
   }
 }
 
