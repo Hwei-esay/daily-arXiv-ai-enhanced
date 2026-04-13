@@ -17,12 +17,16 @@ let previousActiveAuthors = null; // 文本搜索激活时，暂存之前的作�
 const INDEX_DATA_SOURCES = [
   {
     name: 'arXiv',
+    type: 'arxiv',
+    showname: 'arXiv',
     repoOwner: DATA_CONFIG.repoOwner,
     repoName: DATA_CONFIG.repoName,
     dataBranch: DATA_CONFIG.dataBranch
   },
   {
     name: 'APS',
+    type: 'aps',
+    showname: 'APS',
     repoOwner: 'huangpipip',
     repoName: 'aps_rss_ai_everyday',
     dataBranch: 'main'
@@ -66,7 +70,7 @@ function getDataSourceByName(sourceName) {
 }
 
 function getCurrentDataSourceLabel() {
-  return currentDataSource?.name || INDEX_DATA_SOURCES[0].name;
+  return currentDataSource?.showname || currentDataSource?.name || INDEX_DATA_SOURCES[0].showname || INDEX_DATA_SOURCES[0].name;
 }
 
 function getDataBaseUrl(dataSource = currentDataSource) {
@@ -85,7 +89,15 @@ function getPaperPrimaryUrl(paper) {
   return paper.abs_url || paper.html_url || paper.url || paper.pdf_url || '';
 }
 
-function getApsPaperInfo(paper) {
+function isApsDataSource(dataSource = currentDataSource) {
+  return dataSource?.type === 'aps';
+}
+
+function getApsPaperInfo(paper, dataSource = currentDataSource) {
+  if (!isApsDataSource(dataSource)) {
+    return null;
+  }
+
   const primaryUrl = getPaperPrimaryUrl(paper);
   const categoryValue = Array.isArray(paper.category) ? paper.category[0] : paper.category;
   const journal = typeof categoryValue === 'string' ? categoryValue.trim().toLowerCase() : '';
@@ -124,8 +136,8 @@ function getApsPaperInfo(paper) {
   };
 }
 
-function getPaperDetailUrl(paper) {
-  const apsInfo = getApsPaperInfo(paper);
+function getPaperDetailUrl(paper, dataSource = currentDataSource) {
+  const apsInfo = getApsPaperInfo(paper, dataSource);
   if (apsInfo) {
     return apsInfo.abstractUrl;
   }
@@ -138,8 +150,8 @@ function getPaperDetailUrl(paper) {
   return primaryUrl;
 }
 
-function getPaperPdfUrl(paper) {
-  const apsInfo = getApsPaperInfo(paper);
+function getPaperPdfUrl(paper, dataSource = currentDataSource) {
+  const apsInfo = getApsPaperInfo(paper, dataSource);
   if (apsInfo) {
     return apsInfo.pdfUrl;
   }
@@ -156,13 +168,13 @@ function getPaperPdfUrl(paper) {
   return primaryUrl;
 }
 
-function getPaperHtmlUrl(paper) {
-  const apsInfo = getApsPaperInfo(paper);
+function getPaperHtmlUrl(paper, dataSource = currentDataSource) {
+  const apsInfo = getApsPaperInfo(paper, dataSource);
   if (apsInfo) {
     return apsInfo.abstractUrl;
   }
 
-  const primaryUrl = getPaperDetailUrl(paper);
+  const primaryUrl = getPaperDetailUrl(paper, dataSource);
   if (typeof primaryUrl === 'string' && primaryUrl.includes('/pdf/')) {
     return primaryUrl.replace('/pdf/', '/html/');
   }
@@ -177,9 +189,9 @@ function renderDataSourceOptions() {
   }
 
   selector.innerHTML = INDEX_DATA_SOURCES.map(source => (
-    `<option value="${source.name}">${source.name}</option>`
+    `<option value="${source.name}">${source.showname || source.name}</option>`
   )).join('');
-  selector.value = getCurrentDataSourceLabel();
+  selector.value = currentDataSource?.name || INDEX_DATA_SOURCES[0].name;
 }
 
 function resetDataStateForSourceChange() {
@@ -252,7 +264,7 @@ async function reloadDataForCurrentSource() {
 
 async function handleDataSourceChange(event) {
   const selectedSource = getDataSourceByName(event.target.value);
-  if (selectedSource.name === getCurrentDataSourceLabel()) {
+  if (selectedSource.name === currentDataSource?.name) {
     return;
   }
 
@@ -1205,7 +1217,7 @@ async function loadPapersByDate(date, requestId = activeDataRequestId, dataSourc
   }
 
   currentDate = date;
-  document.getElementById('currentDate').textContent = `${dataSource.name} · ${formatDate(date)}`;
+  document.getElementById('currentDate').textContent = `${dataSource.showname || dataSource.name} · ${formatDate(date)}`;
   
   // 更新日期选择器中的选中日期
   syncDatePickerSelection();
@@ -1722,7 +1734,7 @@ function renderPapers() {
   
   filteredPapers.forEach((paper, index) => {
     const paperCard = document.createElement('div');
-    const apsInfo = getApsPaperInfo(paper);
+    const apsInfo = getApsPaperInfo(paper, currentDataSource);
     // 添加匹配高亮类
     paperCard.className = `paper-card ${paper.isMatched ? 'matched-paper' : ''}`;
     paperCard.dataset.id = paper.id || paper.url;
@@ -1820,9 +1832,9 @@ function showPaperDetails(paper, paperIndex) {
   const paperLink = document.getElementById('paperLink');
   const pdfLink = document.getElementById('pdfLink');
   const htmlLink = document.getElementById('htmlLink');
-  const paperUrl = getPaperDetailUrl(paper);
-  const pdfUrl = getPaperPdfUrl(paper);
-  const htmlUrl = getPaperHtmlUrl(paper);
+  const paperUrl = getPaperDetailUrl(paper, currentDataSource);
+  const pdfUrl = getPaperPdfUrl(paper, currentDataSource);
+  const htmlUrl = getPaperHtmlUrl(paper, currentDataSource);
   
   // 重置模态框的滚动位置
   modalBody.scrollTop = 0;
@@ -2092,7 +2104,7 @@ async function loadPapersByDateRange(startDate, endDate, requestId = activeDataR
   }
   
   currentDate = `${startDate} to ${endDate}`;
-  document.getElementById('currentDate').textContent = `${dataSource.name} · ${formatDate(startDate)} - ${formatDate(endDate)}`;
+  document.getElementById('currentDate').textContent = `${dataSource.showname || dataSource.name} · ${formatDate(startDate)} - ${formatDate(endDate)}`;
   
   // 不再重置激活的关键词和作者
   // 而是保持当前选择状态
