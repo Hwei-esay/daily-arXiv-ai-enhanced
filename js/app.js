@@ -18,7 +18,7 @@ const INDEX_DATA_SOURCES = [
   {
     name: 'arXiv',
     type: 'arxiv',
-    showname: 'arXiv',
+    showname: 'arXiv (cquctcmp.com)',
     repoOwner: DATA_CONFIG.repoOwner,
     repoName: DATA_CONFIG.repoName,
     dataBranch: DATA_CONFIG.dataBranch
@@ -26,9 +26,17 @@ const INDEX_DATA_SOURCES = [
   {
     name: 'APS',
     type: 'aps',
-    showname: 'APS',
+    showname: 'APS (cquctcmp.com)',
     repoOwner: 'huangpipip',
     repoName: 'aps_rss_ai_everyday',
+    dataBranch: 'main'
+  },
+  {
+    name: 'arXiv2',
+    type: 'arxiv',
+    showname: 'arXiv (nishuobianchenghennan)',
+    repoOwner: 'nishuobianchenghennan',
+    repoName: 'daily-arXiv-ai-enhanced',
     dataBranch: 'main'
   }
 ];
