@@ -311,6 +311,7 @@ body.header-collapsed header {
   border-radius: 999px;
   background-color: var(--card-bg-color);
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
 }
 
 .data-source-selector::after {
@@ -345,6 +346,7 @@ body.header-collapsed header {
   appearance: none;
   -webkit-appearance: none;
   padding-right: 4px;
+  cursor: pointer;
 }
 
 .date-selector {

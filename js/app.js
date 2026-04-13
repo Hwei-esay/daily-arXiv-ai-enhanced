@@ -202,6 +202,46 @@ function renderDataSourceOptions() {
   selector.value = currentDataSource?.name || INDEX_DATA_SOURCES[0].name;
 }
 
+function openNativeSelect(selectElement) {
+  if (!selectElement || selectElement.disabled) {
+    return;
+  }
+
+  selectElement.focus();
+
+  if (typeof selectElement.showPicker === 'function') {
+    try {
+      selectElement.showPicker();
+      return;
+    } catch (error) {
+      console.warn('打开数据源选择器失败，回退到 click():', error);
+    }
+  }
+
+  selectElement.click();
+}
+
+function initDataSourceSelectorInteractions() {
+  const selector = document.getElementById('dataSourceSelect');
+  const selectorContainer = document.querySelector('.data-source-selector');
+  if (!selector || !selectorContainer) {
+    return;
+  }
+
+  selectorContainer.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target === selector) {
+      return;
+    }
+
+    if (target instanceof Element && target.closest('label')) {
+      return;
+    }
+
+    openNativeSelect(selector);
+  });
+}
+
 function resetDataStateForSourceChange() {
   const paperModal = document.getElementById('paperModal');
   if (paperModal?.classList.contains('active')) {
@@ -660,6 +700,7 @@ function toggleAuthorFilter(author) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
+  initDataSourceSelectorInteractions();
   renderDataSourceOptions();
   
   fetchGitHubStats();
