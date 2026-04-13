@@ -81,6 +81,95 @@ function getGitHubDataApiUrl(dataSource = currentDataSource) {
   return `https://api.github.com/repos/${dataSource.repoOwner}/${dataSource.repoName}/contents/data?ref=${dataSource.dataBranch}`;
 }
 
+function getPaperPrimaryUrl(paper) {
+  return paper.abs_url || paper.html_url || paper.url || paper.pdf_url || '';
+}
+
+function getApsPaperInfo(paper) {
+  const primaryUrl = getPaperPrimaryUrl(paper);
+  const categoryValue = Array.isArray(paper.category) ? paper.category[0] : paper.category;
+  const journal = typeof categoryValue === 'string' ? categoryValue.trim().toLowerCase() : '';
+  const doiFromId = typeof paper.id === 'string' && paper.id.startsWith('10.1103/') ? paper.id.trim() : '';
+
+  let doiFromUrl = '';
+  if (typeof primaryUrl === 'string' && primaryUrl) {
+    try {
+      const parsedUrl = new URL(primaryUrl);
+      if (parsedUrl.hostname === 'link.aps.org') {
+        const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+        if (pathParts[0] === 'doi' && pathParts.length >= 3) {
+          doiFromUrl = pathParts.slice(1).join('/');
+        }
+      } else if (parsedUrl.hostname === 'journals.aps.org') {
+        const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+        if (pathParts.length >= 4) {
+          doiFromUrl = pathParts.slice(2).join('/');
+        }
+      }
+    } catch (error) {
+      console.error('解析 APS 论文 URL 失败:', error);
+    }
+  }
+
+  const doi = doiFromId || doiFromUrl;
+  if (!journal || !doi) {
+    return null;
+  }
+
+  return {
+    journal,
+    doi,
+    abstractUrl: `https://journals.aps.org/${journal}/abstract/${doi}`,
+    pdfUrl: `https://journals.aps.org/${journal}/pdf/${doi}`
+  };
+}
+
+function getPaperDetailUrl(paper) {
+  const apsInfo = getApsPaperInfo(paper);
+  if (apsInfo) {
+    return apsInfo.abstractUrl;
+  }
+
+  const primaryUrl = getPaperPrimaryUrl(paper);
+  if (typeof primaryUrl === 'string' && primaryUrl.includes('/pdf/')) {
+    return primaryUrl.replace('/pdf/', '/abs/');
+  }
+
+  return primaryUrl;
+}
+
+function getPaperPdfUrl(paper) {
+  const apsInfo = getApsPaperInfo(paper);
+  if (apsInfo) {
+    return apsInfo.pdfUrl;
+  }
+
+  if (paper.pdf_url) {
+    return paper.pdf_url;
+  }
+
+  const primaryUrl = getPaperPrimaryUrl(paper);
+  if (typeof primaryUrl === 'string' && primaryUrl.includes('/abs/')) {
+    return primaryUrl.replace('/abs/', '/pdf/');
+  }
+
+  return primaryUrl;
+}
+
+function getPaperHtmlUrl(paper) {
+  const apsInfo = getApsPaperInfo(paper);
+  if (apsInfo) {
+    return apsInfo.abstractUrl;
+  }
+
+  const primaryUrl = getPaperDetailUrl(paper);
+  if (typeof primaryUrl === 'string' && primaryUrl.includes('/pdf/')) {
+    return primaryUrl.replace('/pdf/', '/html/');
+  }
+
+  return primaryUrl;
+}
+
 function renderDataSourceOptions() {
   const selector = document.getElementById('dataSourceSelect');
   if (!selector) {
@@ -1216,7 +1305,10 @@ function parseJsonlData(jsonlText, date) {
       
       result[primaryCategory].push({
         title: paper.title,
-        url: paper.abs || paper.pdf || `https://arxiv.org/abs/${paper.id}`,
+        url: paper.abs || paper.url || paper.pdf || `https://arxiv.org/abs/${paper.id}`,
+        abs_url: paper.abs || paper.url || '',
+        pdf_url: paper.pdf || '',
+        html_url: paper.url || '',
         authors: Array.isArray(paper.authors) ? paper.authors.join(', ') : paper.authors,
         category: allCategories,
         summary: summary,
@@ -1630,6 +1722,7 @@ function renderPapers() {
   
   filteredPapers.forEach((paper, index) => {
     const paperCard = document.createElement('div');
+    const apsInfo = getApsPaperInfo(paper);
     // 添加匹配高亮类
     paperCard.className = `paper-card ${paper.isMatched ? 'matched-paper' : ''}`;
     paperCard.dataset.id = paper.id || paper.url;
@@ -1701,12 +1794,17 @@ function renderPapers() {
           <div class="footer-left">
             <span class="paper-card-date">${formatDate(paper.date)}</span>
           </div>
-          <span class="paper-card-link">Details</span>
+          <span class="paper-card-link">${apsInfo ? 'Open APS' : 'Details'}</span>
         </div>
       </div>
     `;
     
     paperCard.addEventListener('click', () => {
+      if (apsInfo) {
+        window.open(apsInfo.abstractUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
       currentPaperIndex = index; // 记录当前点击的论文索引
       showPaperDetails(paper, index + 1);
     });
@@ -1722,6 +1820,9 @@ function showPaperDetails(paper, paperIndex) {
   const paperLink = document.getElementById('paperLink');
   const pdfLink = document.getElementById('pdfLink');
   const htmlLink = document.getElementById('htmlLink');
+  const paperUrl = getPaperDetailUrl(paper);
+  const pdfUrl = getPaperPdfUrl(paper);
+  const htmlUrl = getPaperHtmlUrl(paper);
   
   // 重置模态框的滚动位置
   modalBody.scrollTop = 0;
@@ -1817,7 +1918,7 @@ function showPaperDetails(paper, paperIndex) {
           </button>
         </div>
         <div class="pdf-container">
-          <iframe src="${paper.url.replace('abs', 'pdf')}" width="100%" height="1200px" frameborder="0"></iframe>
+          <iframe src="${pdfUrl}" width="100%" height="1200px" frameborder="0"></iframe>
         </div>
       </div>
     </div>
@@ -1825,9 +1926,9 @@ function showPaperDetails(paper, paperIndex) {
   
   // Update modal content
   document.getElementById('modalBody').innerHTML = modalContent;
-  document.getElementById('paperLink').href = paper.url;
-  document.getElementById('pdfLink').href = paper.url.replace('abs', 'pdf');
-  document.getElementById('htmlLink').href = paper.url.replace('abs', 'html');
+  paperLink.href = paperUrl;
+  pdfLink.href = pdfUrl;
+  htmlLink.href = htmlUrl;
   
   // --- GitHub Button Logic ---
   const githubLink = document.getElementById('githubLink');
@@ -1842,7 +1943,7 @@ function showPaperDetails(paper, paperIndex) {
   // ---------------------------
 
   // 提示词来自：https://papers.cool/
-  prompt = `请你阅读这篇文章${paper.url.replace('abs', 'pdf')},总结一下这篇文章解决的问题、相关工作、研究方法、做了什么实验及其结果、结论，最后整体总结一下这篇文章的内容`
+  prompt = `请你阅读这篇文章${pdfUrl},总结一下这篇文章解决的问题、相关工作、研究方法、做了什么实验及其结果、结论，最后整体总结一下这篇文章的内容`
   document.getElementById('kimiChatLink').href = `https://www.kimi.com/_prefill_chat?prefill_prompt=${prompt}&system_prompt=你是一个学术助手，后面的对话将围绕着以下论文内容进行，已经通过链接给出了论文的PDF和论文已有的FAQ。用户将继续向你咨询论文的相关问题，请你作出专业的回答，不要出现第一人称，当涉及到分点回答时，鼓励你以markdown格式输出。&send_immediately=true&force_search=true`;
   
   // 更新论文位置信息
