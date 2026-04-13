@@ -38,6 +38,14 @@ const INDEX_DATA_SOURCES = [
     repoOwner: 'nishuobianchenghennan',
     repoName: 'daily-arXiv-ai-enhanced',
     dataBranch: 'main'
+  },
+  {
+    name: 'arXiv3',
+    type: 'arxiv',
+    showname: 'arXiv (yp51md)',
+    repoOwner: 'yp51md',
+    repoName: 'daily-arXiv-ai-enhanced',
+    dataBranch: 'main'
   }
 ];
 let currentDataSource = INDEX_DATA_SOURCES[0];
