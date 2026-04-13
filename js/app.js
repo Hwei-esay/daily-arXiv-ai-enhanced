@@ -14,6 +14,22 @@ let currentFilteredPapers = []; // 当前过滤后的论文列表
 let textSearchQuery = ''; // 实时文本搜索查询
 let previousActiveKeywords = null; // 文本搜索激活时，暂存之前的关键词激活集合
 let previousActiveAuthors = null; // 文本搜索激活时，暂存之前的作者激活集合
+const INDEX_DATA_SOURCES = [
+  {
+    name: 'arXiv',
+    repoOwner: DATA_CONFIG.repoOwner,
+    repoName: DATA_CONFIG.repoName,
+    dataBranch: DATA_CONFIG.dataBranch
+  },
+  {
+    name: 'APS',
+    repoOwner: 'huangpipip',
+    repoName: 'aps_rss_ai_everyday',
+    dataBranch: 'main'
+  }
+];
+let currentDataSource = INDEX_DATA_SOURCES[0];
+let activeDataRequestId = 0;
 const PAPER_MODAL_RESIZE_CONSTRAINTS = {
   minWidth: 680,
   minHeight: 420,
@@ -34,6 +50,125 @@ const paperModalResizeState = {
 
 function clampValue(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function nextDataRequestId() {
+  activeDataRequestId += 1;
+  return activeDataRequestId;
+}
+
+function isActiveDataRequest(requestId) {
+  return requestId === activeDataRequestId;
+}
+
+function getDataSourceByName(sourceName) {
+  return INDEX_DATA_SOURCES.find(source => source.name === sourceName) || INDEX_DATA_SOURCES[0];
+}
+
+function getCurrentDataSourceLabel() {
+  return currentDataSource?.name || INDEX_DATA_SOURCES[0].name;
+}
+
+function getDataBaseUrl(dataSource = currentDataSource) {
+  return `https://raw.githubusercontent.com/${dataSource.repoOwner}/${dataSource.repoName}/${dataSource.dataBranch}`;
+}
+
+function getDataUrl(filePath, dataSource = currentDataSource) {
+  return `${getDataBaseUrl(dataSource)}/${filePath}`;
+}
+
+function getGitHubDataApiUrl(dataSource = currentDataSource) {
+  return `https://api.github.com/repos/${dataSource.repoOwner}/${dataSource.repoName}/contents/data?ref=${dataSource.dataBranch}`;
+}
+
+function renderDataSourceOptions() {
+  const selector = document.getElementById('dataSourceSelect');
+  if (!selector) {
+    return;
+  }
+
+  selector.innerHTML = INDEX_DATA_SOURCES.map(source => (
+    `<option value="${source.name}">${source.name}</option>`
+  )).join('');
+  selector.value = getCurrentDataSourceLabel();
+}
+
+function resetDataStateForSourceChange() {
+  const paperModal = document.getElementById('paperModal');
+  if (paperModal?.classList.contains('active')) {
+    closeModal();
+  }
+
+  currentDate = '';
+  availableDates = [];
+  paperData = {};
+  currentCategory = 'all';
+  currentFilteredPapers = [];
+  currentPaperIndex = 0;
+  window.dateLanguageMap = new Map();
+  updatePaperNavigationControls();
+}
+
+function renderDataLoadingState(message = 'Loading papers...') {
+  const dateLabel = document.getElementById('currentDate');
+  const container = document.getElementById('paperContainer');
+  if (dateLabel) {
+    dateLabel.textContent = `${getCurrentDataSourceLabel()} · Loading...`;
+  }
+  if (container) {
+    container.innerHTML = `
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>${message}</p>
+      </div>
+    `;
+  }
+  renderCategoryFilter({ sortedCategories: [], categoryCounts: {} });
+}
+
+function renderNoDataState(message) {
+  const dateLabel = document.getElementById('currentDate');
+  const container = document.getElementById('paperContainer');
+  if (dateLabel) {
+    dateLabel.textContent = `${getCurrentDataSourceLabel()} · No data`;
+  }
+  if (container) {
+    container.innerHTML = `
+      <div class="loading-container">
+        <p>${message}</p>
+      </div>
+    `;
+  }
+  renderCategoryFilter({ sortedCategories: [], categoryCounts: {} });
+}
+
+async function reloadDataForCurrentSource() {
+  const requestId = nextDataRequestId();
+  resetDataStateForSourceChange();
+  renderDataSourceOptions();
+  renderDataLoadingState(`Loading ${getCurrentDataSourceLabel()} papers...`);
+
+  const dates = await fetchAvailableDates(requestId, currentDataSource);
+  if (!isActiveDataRequest(requestId)) {
+    return;
+  }
+
+  if (dates.length === 0) {
+    renderNoDataState(`No papers found for ${getCurrentDataSourceLabel()}.`);
+    return;
+  }
+
+  await loadPapersByDate(dates[0], requestId, currentDataSource);
+}
+
+async function handleDataSourceChange(event) {
+  const selectedSource = getDataSourceByName(event.target.value);
+  if (selectedSource.name === getCurrentDataSourceLabel()) {
+    return;
+  }
+
+  currentDataSource = selectedSource;
+  await reloadDataForCurrentSource();
 }
 
 function isPaperModalResizeEnabled() {
@@ -416,6 +551,7 @@ function toggleAuthorFilter(author) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
+  renderDataSourceOptions();
   
   fetchGitHubStats();
   
@@ -425,30 +561,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // 加载用户作者
   loadUserAuthors();
   
-  fetchAvailableDates().then(() => {
-    if (availableDates.length > 0) {
-      loadPapersByDate(availableDates[0]);
-    }
-  });
+  reloadDataForCurrentSource();
 });
 
 async function fetchGitHubStats() {
+  const starCountElement = document.getElementById('starCount');
+  const forkCountElement = document.getElementById('forkCount');
+  if (!starCountElement || !forkCountElement) {
+    return;
+  }
+
   try {
     const response = await fetch('https://api.github.com/repos/huangpipip/daily-arXiv-ai-enhanced');
     const data = await response.json();
     const starCount = data.stargazers_count;
     const forkCount = data.forks_count;
     
-    document.getElementById('starCount').textContent = starCount;
-    document.getElementById('forkCount').textContent = forkCount;
+    starCountElement.textContent = starCount;
+    forkCountElement.textContent = forkCount;
   } catch (error) {
     console.error('获取GitHub统计数据失败:', error);
-    document.getElementById('starCount').textContent = '?';
-    document.getElementById('forkCount').textContent = '?';
+    starCountElement.textContent = '?';
+    forkCountElement.textContent = '?';
   }
 }
 
 function initEventListeners() {
+  const dataSourceSelect = document.getElementById('dataSourceSelect');
+  if (dataSourceSelect) {
+    dataSourceSelect.addEventListener('change', handleDataSourceChange);
+  }
+
   // 日期选择器相关的事件监听
   const calendarButton = document.getElementById('calendarButton');
   calendarButton.addEventListener('click', (e) => {
@@ -783,12 +926,17 @@ function buildAvailableDateMetadata(files) {
 function applyAvailableDateMetadata(metadata) {
   window.dateLanguageMap = metadata.dateLanguageMap;
   availableDates = metadata.availableDates;
-  initDatePicker();
+  if (availableDates.length > 0) {
+    initDatePicker();
+  } else if (flatpickrInstance) {
+    flatpickrInstance.destroy();
+    flatpickrInstance = null;
+  }
   return availableDates;
 }
 
-async function fetchAvailableDatesFromFileList() {
-  const fileListUrl = DATA_CONFIG.getDataUrl('assets/file-list.txt');
+async function fetchAvailableDatesFromFileList(dataSource = currentDataSource) {
+  const fileListUrl = getDataUrl('assets/file-list.txt', dataSource);
   const response = await fetch(fileListUrl);
   if (!response.ok) {
     throw new Error(`Error fetching file list: ${response.status}`);
@@ -799,8 +947,8 @@ async function fetchAvailableDatesFromFileList() {
   return buildAvailableDateMetadata(files);
 }
 
-async function fetchAvailableDatesFromGitHubApi() {
-  const apiUrl = `https://api.github.com/repos/${DATA_CONFIG.repoOwner}/${DATA_CONFIG.repoName}/contents/data?ref=${DATA_CONFIG.dataBranch}`;
+async function fetchAvailableDatesFromGitHubApi(dataSource = currentDataSource) {
+  const apiUrl = getGitHubDataApiUrl(dataSource);
   const response = await fetch(apiUrl);
   if (!response.ok) {
     throw new Error(`Error fetching GitHub data listing: ${response.status}`);
@@ -810,15 +958,21 @@ async function fetchAvailableDatesFromGitHubApi() {
   return buildAvailableDateMetadata(Array.isArray(files) ? files : []);
 }
 
-async function fetchAvailableDates() {
+async function fetchAvailableDates(requestId = activeDataRequestId, dataSource = currentDataSource) {
   try {
-    const fileListMetadata = await fetchAvailableDatesFromFileList();
+    const fileListMetadata = await fetchAvailableDatesFromFileList(dataSource);
+    if (!isActiveDataRequest(requestId)) {
+      return [];
+    }
 
     if (fileListMetadata.availableDates.length > 1) {
       return applyAvailableDateMetadata(fileListMetadata);
     }
 
-    const apiMetadata = await fetchAvailableDatesFromGitHubApi();
+    const apiMetadata = await fetchAvailableDatesFromGitHubApi(dataSource);
+    if (!isActiveDataRequest(requestId)) {
+      return [];
+    }
     if (apiMetadata.availableDates.length > fileListMetadata.availableDates.length) {
       return applyAvailableDateMetadata(apiMetadata);
     }
@@ -828,7 +982,10 @@ async function fetchAvailableDates() {
     console.error('获取可用日期失败，尝试 GitHub API 回退:', error);
 
     try {
-      const apiMetadata = await fetchAvailableDatesFromGitHubApi();
+      const apiMetadata = await fetchAvailableDatesFromGitHubApi(dataSource);
+      if (!isActiveDataRequest(requestId)) {
+        return [];
+      }
       return applyAvailableDateMetadata(apiMetadata);
     } catch (apiError) {
       console.error('GitHub API 回退也失败:', apiError);
@@ -838,6 +995,10 @@ async function fetchAvailableDates() {
 }
 
 function initDatePicker() {
+  if (availableDates.length === 0) {
+    return;
+  }
+
   const datepickerInput = document.getElementById('datepicker');
   
   if (flatpickrInstance) {
@@ -870,13 +1031,15 @@ function initDatePicker() {
         // 处理日期范围选择
         const startDate = formatDateForAPI(selectedDates[0]);
         const endDate = formatDateForAPI(selectedDates[1]);
-        loadPapersByDateRange(startDate, endDate);
+        const requestId = nextDataRequestId();
+        loadPapersByDateRange(startDate, endDate, requestId, currentDataSource);
         toggleDatePicker();
       } else if (!isRangeMode && selectedDates.length === 1) {
         // 处理单个日期选择
         const selectedDate = formatDateForAPI(selectedDates[0]);
         // if (availableDates.includes(selectedDate)) {
-          loadPapersByDate(selectedDate);
+          const requestId = nextDataRequestId();
+          loadPapersByDate(selectedDate, requestId, currentDataSource);
           toggleDatePicker();
         // }
       }
@@ -904,6 +1067,10 @@ function parseCurrentDateRange(dateValue) {
 }
 
 function getDatePickerSelection() {
+  if (availableDates.length === 0) {
+    return [];
+  }
+
   if (isRangeMode) {
     const range = parseCurrentDateRange(currentDate);
     if (range) {
@@ -943,9 +1110,13 @@ function toggleRangeMode() {
   }
 }
 
-async function loadPapersByDate(date) {
+async function loadPapersByDate(date, requestId = activeDataRequestId, dataSource = currentDataSource) {
+  if (!isActiveDataRequest(requestId)) {
+    return;
+  }
+
   currentDate = date;
-  document.getElementById('currentDate').textContent = formatDate(date);
+  document.getElementById('currentDate').textContent = `${dataSource.name} · ${formatDate(date)}`;
   
   // 更新日期选择器中的选中日期
   syncDatePickerSelection();
@@ -964,8 +1135,11 @@ async function loadPapersByDate(date) {
   try {
     const selectedLanguage = selectLanguageForDate(date);
     // 从 data 分支获取数据文件
-    const dataUrl = DATA_CONFIG.getDataUrl(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`);
+    const dataUrl = getDataUrl(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`, dataSource);
     const response = await fetch(dataUrl);
+    if (!isActiveDataRequest(requestId)) {
+      return;
+    }
     // 如果文件不存在（例如返回 404），在论文展示区域提示没有论文
     if (!response.ok) {
       if (response.status === 404) {
@@ -994,6 +1168,9 @@ async function loadPapersByDate(date) {
     }
     
     paperData = parseJsonlData(text, date);
+    if (!isActiveDataRequest(requestId)) {
+      return;
+    }
     
     const categories = getAllCategories(paperData);
     
@@ -1001,6 +1178,9 @@ async function loadPapersByDate(date) {
     
     renderPapers();
   } catch (error) {
+    if (!isActiveDataRequest(requestId)) {
+      return;
+    }
     console.error('加载论文数据失败:', error);
     container.innerHTML = `
       <div class="loading-container">
@@ -1795,7 +1975,11 @@ function formatDate(dateString) {
   });
 }
 
-async function loadPapersByDateRange(startDate, endDate) {
+async function loadPapersByDateRange(startDate, endDate, requestId = activeDataRequestId, dataSource = currentDataSource) {
+  if (!isActiveDataRequest(requestId)) {
+    return;
+  }
+
   // 获取日期范围内的所有有效日期
   const validDatesInRange = availableDates.filter(date => {
     return date >= startDate && date <= endDate;
@@ -1807,7 +1991,7 @@ async function loadPapersByDateRange(startDate, endDate) {
   }
   
   currentDate = `${startDate} to ${endDate}`;
-  document.getElementById('currentDate').textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  document.getElementById('currentDate').textContent = `${dataSource.name} · ${formatDate(startDate)} - ${formatDate(endDate)}`;
   
   // 不再重置激活的关键词和作者
   // 而是保持当前选择状态
@@ -1827,9 +2011,21 @@ async function loadPapersByDateRange(startDate, endDate) {
     for (const date of validDatesInRange) {
       const selectedLanguage = selectLanguageForDate(date);
       // 从 data 分支获取数据文件
-      const dataUrl = DATA_CONFIG.getDataUrl(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`);
+      const dataUrl = getDataUrl(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`, dataSource);
       const response = await fetch(dataUrl);
+      if (!isActiveDataRequest(requestId)) {
+        return;
+      }
+      if (!response.ok) {
+        if (response.status === 404) {
+          continue;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
       const text = await response.text();
+      if (!text || !text.trim()) {
+        continue;
+      }
       const dataPapers = parseJsonlData(text, date);
       
       // 合并数据
@@ -1842,6 +2038,9 @@ async function loadPapersByDateRange(startDate, endDate) {
     }
     
     paperData = allPaperData;
+    if (!isActiveDataRequest(requestId)) {
+      return;
+    }
     
     const categories = getAllCategories(paperData);
     
@@ -1849,6 +2048,9 @@ async function loadPapersByDateRange(startDate, endDate) {
     
     renderPapers();
   } catch (error) {
+    if (!isActiveDataRequest(requestId)) {
+      return;
+    }
     console.error('加载论文数据失败:', error);
     container.innerHTML = `
       <div class="loading-container">
