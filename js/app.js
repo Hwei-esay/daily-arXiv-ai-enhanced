@@ -32,6 +32,14 @@ const INDEX_DATA_SOURCES = [
     dataBranch: 'main'
   },
   {
+    name: 'arXiv4',
+    type: 'arxiv',
+    showname: 'arXiv (topomat12138)',
+    repoOwner: 'topomat12138',
+    repoName: 'daily-arXiv-ai-enhanced',
+    dataBranch: 'data'
+  },
+  {
     name: 'arXiv2',
     type: 'arxiv',
     showname: 'arXiv (nishuobianchenghennan)',
