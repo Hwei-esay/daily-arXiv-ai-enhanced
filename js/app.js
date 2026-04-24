@@ -61,8 +61,8 @@ let activeDataRequestId = 0;
 const PAPER_MODAL_RESIZE_CONSTRAINTS = {
   minWidth: 680,
   minHeight: 420,
-  viewportHorizontalMargin: 32,
-  viewportVerticalMargin: 120
+  viewportHorizontalMargin: 0,
+  viewportVerticalMargin: 0
 };
 const paperModalResizeState = {
   active: false,
@@ -457,13 +457,15 @@ function resizePaperModal(event) {
   event.preventDefault();
 
   const bounds = getPaperModalResizeBounds();
+  const deltaX = event.clientX - paperModalResizeState.startX;
+  const deltaY = event.clientY - paperModalResizeState.startY;
   const nextWidth = clampValue(
-    paperModalResizeState.startWidth + (event.clientX - paperModalResizeState.startX),
+    paperModalResizeState.startWidth + deltaX * 2,
     bounds.minWidth,
     bounds.maxWidth
   );
   const nextHeight = clampValue(
-    paperModalResizeState.startHeight + (event.clientY - paperModalResizeState.startY),
+    paperModalResizeState.startHeight + deltaY * 2,
     bounds.minHeight,
     bounds.maxHeight
   );

@@ -878,7 +878,7 @@ main {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1000;
-  overflow-y: auto;
+  overflow: hidden;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
 }
@@ -886,7 +886,7 @@ main {
 .paper-modal.active {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .paper-modal-content {
@@ -895,11 +895,11 @@ main {
   box-shadow: var(--shadow-md);
   box-sizing: border-box;
   width: 90%;
-  max-width: min(1400px, calc(100vw - 32px));
+  max-width: 100vw;
   min-width: 680px;
   min-height: 420px;
-  margin: 60px auto;
-  max-height: calc(100vh - 120px);
+  margin: 0;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -2368,14 +2368,14 @@ footer {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
-  position: absolute;
-  top: -12px;
-  left: -12px;
+  margin-right: 10px;
+  vertical-align: middle;
+  flex: 0 0 auto;
   z-index: 5;
 }
 
