@@ -34,6 +34,7 @@ DEFAULT_AI_FIELDS = {
     "result": "Result analysis unavailable",
     "conclusion": "Conclusion extraction failed",
 }
+MAX_AI_GENERATION_ATTEMPTS = 3
 
 JSON_ONLY_INSTRUCTIONS = """
 Return only a valid JSON object with exactly these keys:
@@ -97,6 +98,19 @@ def invoke_chain(chain, item: Dict, language: str, structured_output: bool) -> S
     raw_text = normalize_message_content(response)
     parsed_json = json.loads(extract_json_object(raw_text))
     return Structure.model_validate(parsed_json)
+
+def invoke_chain_with_retry(chain, item: Dict, language: str, structured_output: bool) -> Structure:
+    item_id = item.get("id", "unknown")
+    for attempt in range(1, MAX_AI_GENERATION_ATTEMPTS + 1):
+        try:
+            return invoke_chain(chain, item, language, structured_output)
+        except Exception as e:
+            if attempt == MAX_AI_GENERATION_ATTEMPTS:
+                raise
+            print(
+                f"AI generation attempt {attempt}/{MAX_AI_GENERATION_ATTEMPTS} failed for {item_id}: {e}",
+                file=sys.stderr,
+            )
 
 def process_single_item(chain, item: Dict, language: str, structured_output: bool) -> Dict:
     def is_sensitive(content: str) -> bool:
@@ -180,7 +194,7 @@ def process_single_item(chain, item: Dict, language: str, structured_output: boo
 
     """处理单个数据项"""
     try:
-        response = invoke_chain(chain, item, language, structured_output)
+        response = invoke_chain_with_retry(chain, item, language, structured_output)
         item['AI'] = response.model_dump()
     except langchain_core.exceptions.OutputParserException as e:
         # 尝试从错误信息中提取 JSON 字符串并修复
