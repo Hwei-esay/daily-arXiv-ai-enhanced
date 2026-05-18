@@ -1910,7 +1910,6 @@ function renderPapers() {
   
   filteredPapers.forEach((paper, index) => {
     const paperCard = document.createElement('div');
-    const apsInfo = getApsPaperInfo(paper, currentDataSource);
     // 添加匹配高亮类
     paperCard.className = `paper-card ${paper.isMatched ? 'matched-paper' : ''}`;
     paperCard.dataset.id = paper.id || paper.url;
@@ -1989,7 +1988,7 @@ function renderPapers() {
                 <path d="M14 11C13.57 10.43 12.95 10 12 10C10.62 10 9.89 10.97 9.12 11.98L7.55 14.05C6.79 15.06 6.97 16.49 7.97 17.25C8.97 18.02 10.4 17.83 11.16 16.83L11.8 15.98" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </button>
-            <span class="paper-card-link">${apsInfo ? 'Open APS' : 'Details'}</span>
+            <span class="paper-card-link">Details</span>
           </div>
         </div>
       </div>
@@ -2005,11 +2004,6 @@ function renderPapers() {
     }
     
     paperCard.addEventListener('click', () => {
-      if (apsInfo) {
-        window.open(apsInfo.abstractUrl, '_blank', 'noopener,noreferrer');
-        return;
-      }
-
       currentPaperIndex = index; // 记录当前点击的论文索引
       showPaperDetails(paper, index + 1);
     });
@@ -2132,6 +2126,7 @@ function showPaperDetails(paper, paperIndex) {
   // Update modal content
   document.getElementById('modalBody').innerHTML = modalContent;
   paperLink.href = paperUrl;
+  paperLink.title = isApsDataSource(currentDataSource) ? 'Open APS article' : 'Open article link';
   pdfLink.href = pdfUrl;
   htmlLink.href = htmlUrl;
   
