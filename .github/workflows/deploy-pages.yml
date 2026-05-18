@@ -1,0 +1,66 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare static site
+        run: |
+          SITE_DIR="_site"
+          mkdir -p "$SITE_DIR"
+          rsync -av \
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude ".vscode" \
+            --exclude "_site" \
+            ./ "$SITE_DIR"/
+
+          touch "$SITE_DIR/.nojekyll"
+
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+
+          sed -i "s/repoOwner: '[^']*'/repoOwner: '$REPO_OWNER'/" "$SITE_DIR/js/data-config.js"
+          sed -i "s/repoName: '[^']*'/repoName: '$REPO_NAME'/" "$SITE_DIR/js/data-config.js"
+
+          PASSWORD="${{ secrets.ACCESS_PASSWORD }}"
+          if [ -z "$PASSWORD" ]; then
+            PASSWORD_HASH="DISABLED_NO_PASSWORD_SET_IN_SECRETS"
+          else
+            PASSWORD_HASH=$(echo -n "$PASSWORD" | openssl dgst -sha256 -hex | awk '{print $2}')
+          fi
+          sed -i "s/passwordHash: '[^']*'/passwordHash: '$PASSWORD_HASH'/" "$SITE_DIR/js/auth-config.js"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

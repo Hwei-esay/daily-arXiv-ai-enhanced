@@ -57,6 +57,24 @@ Otherwise, you can directly use this repo in https://huangpipip.github.io/daily-
 9. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
 10. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/huangpipip/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
 
+## GitHub Pages subpath deployment
+
+This repository is a static site at the repository root. It is suitable for a GitHub Pages project URL such as:
+
+```text
+https://Hwei-esay.github.io/<repository-name>/
+```
+
+For the local folder name used here, the expected project URL is:
+
+```text
+https://Hwei-esay.github.io/daily-arXiv-ai-enhanced/
+```
+
+Deployment is handled by `.github/workflows/deploy-pages.yml`. On every push to `main`, GitHub Actions uploads the repository root as the Pages artifact, adds `.nojekyll`, and injects the current repository owner/name into `js/data-config.js` so data requests use the matching repository and `data` branch. In GitHub repository settings, set **Settings -> Pages -> Build and deployment -> Source** to **GitHub Actions**.
+
+The scheduled `.github/workflows/run.yml` workflow continues to crawl and update the `data` branch. It requires repository variables `CATEGORIES`, `LANGUAGE`, `MODEL_NAME`, `EMAIL`, and `NAME`, plus secrets `OPENAI_API_KEY` and `OPENAI_BASE_URL`. Optional secret `ACCESS_PASSWORD` enables password protection.
+
 # Plans
 See https://github.com/users/huangpipip/projects/3
 
