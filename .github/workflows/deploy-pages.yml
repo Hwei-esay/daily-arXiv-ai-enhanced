@@ -42,12 +42,6 @@ jobs:
 
           touch "$SITE_DIR/.nojekyll"
 
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_NAME="${{ github.event.repository.name }}"
-
-          sed -i "s/repoOwner: '[^']*'/repoOwner: '$REPO_OWNER'/" "$SITE_DIR/js/data-config.js"
-          sed -i "s/repoName: '[^']*'/repoName: '$REPO_NAME'/" "$SITE_DIR/js/data-config.js"
-
           PASSWORD="${{ secrets.ACCESS_PASSWORD }}"
           if [ -z "$PASSWORD" ]; then
             PASSWORD_HASH="DISABLED_NO_PASSWORD_SET_IN_SECRETS"

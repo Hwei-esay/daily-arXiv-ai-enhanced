@@ -18,7 +18,7 @@ const INDEX_DATA_SOURCES = [
   {
     name: 'arXiv',
     type: 'arxiv',
-    showname: 'arXiv (cquctcmp.com)',
+    showname: 'arXiv (upstream)',
     repoOwner: DATA_CONFIG.repoOwner,
     repoName: DATA_CONFIG.repoName,
     dataBranch: DATA_CONFIG.dataBranch
