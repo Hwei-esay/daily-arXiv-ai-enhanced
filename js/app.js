@@ -206,6 +206,100 @@ function getPaperHtmlUrl(paper, dataSource = currentDataSource) {
   return primaryUrl;
 }
 
+function getCurrentSingleDate() {
+  if (!currentDate || parseCurrentDateRange(currentDate)) {
+    return '';
+  }
+
+  return currentDate;
+}
+
+function setDateStepButtonState() {
+  const prevButton = document.getElementById('prevDateButton');
+  const nextButton = document.getElementById('nextDateButton');
+  if (!prevButton || !nextButton) {
+    return;
+  }
+
+  const currentSingleDate = getCurrentSingleDate();
+  const currentIndex = availableDates.indexOf(currentSingleDate);
+  const canNavigate = availableDates.length > 1 && currentIndex !== -1;
+
+  prevButton.disabled = !canNavigate || currentIndex >= availableDates.length - 1;
+  nextButton.disabled = !canNavigate || currentIndex <= 0;
+}
+
+function changeAvailableDate(direction) {
+  const currentSingleDate = getCurrentSingleDate();
+  if (!currentSingleDate || availableDates.length === 0) {
+    return;
+  }
+
+  const currentIndex = availableDates.indexOf(currentSingleDate);
+  if (currentIndex === -1) {
+    return;
+  }
+
+  const nextIndex = currentIndex + direction;
+  if (nextIndex < 0 || nextIndex >= availableDates.length) {
+    return;
+  }
+
+  const requestId = nextDataRequestId();
+  loadPapersByDate(availableDates[nextIndex], requestId, currentDataSource);
+}
+
+async function copyTextToClipboard(text) {
+  if (!text) {
+    return false;
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.pointerEvents = 'none';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } finally {
+    textarea.remove();
+  }
+
+  return copied;
+}
+
+async function handleCopyPaperLink(paper, button = null) {
+  const paperUrl = getPaperDetailUrl(paper, currentDataSource);
+  if (!paperUrl) {
+    return;
+  }
+
+  try {
+    const copied = await copyTextToClipboard(paperUrl);
+    if (button) {
+      const originalTitle = button.getAttribute('title') || 'Copy paper link';
+      button.classList.toggle('copied', copied);
+      button.setAttribute('title', copied ? 'Copied' : 'Copy failed');
+      setTimeout(() => {
+        button.classList.remove('copied');
+        button.setAttribute('title', originalTitle);
+      }, 1400);
+    }
+  } catch (error) {
+    console.error('复制论文链接失败:', error);
+  }
+}
+
 function renderDataSourceOptions() {
   const selector = document.getElementById('dataSourceSelect');
   if (!selector) {
@@ -272,6 +366,7 @@ function resetDataStateForSourceChange() {
   currentPaperIndex = 0;
   window.dateLanguageMap = new Map();
   updatePaperNavigationControls();
+  setDateStepButtonState();
 }
 
 function renderDataLoadingState(message = 'Loading papers...') {
@@ -280,6 +375,7 @@ function renderDataLoadingState(message = 'Loading papers...') {
   if (dateLabel) {
     dateLabel.textContent = `${getCurrentDataSourceLabel()} · Loading...`;
   }
+  setDateStepButtonState();
   if (container) {
     container.innerHTML = `
       <div class="loading-container">
@@ -297,6 +393,7 @@ function renderNoDataState(message) {
   if (dateLabel) {
     dateLabel.textContent = `${getCurrentDataSourceLabel()} · No data`;
   }
+  setDateStepButtonState();
   if (container) {
     container.innerHTML = `
       <div class="loading-container">
@@ -766,6 +863,21 @@ function initEventListeners() {
     e.stopPropagation();
     toggleDatePicker();
   });
+
+  const prevDateButton = document.getElementById('prevDateButton');
+  const nextDateButton = document.getElementById('nextDateButton');
+  if (prevDateButton) {
+    prevDateButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      changeAvailableDate(1);
+    });
+  }
+  if (nextDateButton) {
+    nextDateButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      changeAvailableDate(-1);
+    });
+  }
   
   const datePickerModal = document.querySelector('.date-picker-modal');
   datePickerModal.addEventListener('click', (event) => {
@@ -783,6 +895,15 @@ function initEventListeners() {
   
   // 其他原有的事件监听器
   document.getElementById('closeModal').addEventListener('click', closeModal);
+  const copyPaperLink = document.getElementById('copyPaperLink');
+  if (copyPaperLink) {
+    copyPaperLink.addEventListener('click', () => {
+      const paper = currentFilteredPapers[currentPaperIndex];
+      if (paper) {
+        handleCopyPaperLink(paper, copyPaperLink);
+      }
+    });
+  }
   document.querySelectorAll('[data-paper-nav="prev"]').forEach(button => {
     button.addEventListener('click', navigateToPreviousPaper);
   });
@@ -1086,6 +1207,7 @@ function applyAvailableDateMetadata(metadata) {
     flatpickrInstance.destroy();
     flatpickrInstance = null;
   }
+  setDateStepButtonState();
   return availableDates;
 }
 
@@ -1271,6 +1393,7 @@ async function loadPapersByDate(date, requestId = activeDataRequestId, dataSourc
 
   currentDate = date;
   document.getElementById('currentDate').textContent = `${dataSource.showname || dataSource.name} · ${formatDate(date)}`;
+  setDateStepButtonState();
   
   // 更新日期选择器中的选中日期
   syncDatePickerSelection();
@@ -1859,10 +1982,27 @@ function renderPapers() {
           <div class="footer-left">
             <span class="paper-card-date">${formatDate(paper.date)}</span>
           </div>
-          <span class="paper-card-link">${apsInfo ? 'Open APS' : 'Details'}</span>
+          <div class="paper-card-actions">
+            <button type="button" class="paper-card-copy" title="Copy paper link" aria-label="Copy paper link">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 13C10.43 13.57 11.05 14 12 14C13.38 14 14.11 13.03 14.88 12.02L16.45 9.95C17.21 8.94 17.03 7.51 16.03 6.75C15.03 5.98 13.6 6.17 12.84 7.17L12.2 8.02" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M14 11C13.57 10.43 12.95 10 12 10C10.62 10 9.89 10.97 9.12 11.98L7.55 14.05C6.79 15.06 6.97 16.49 7.97 17.25C8.97 18.02 10.4 17.83 11.16 16.83L11.8 15.98" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <span class="paper-card-link">${apsInfo ? 'Open APS' : 'Details'}</span>
+          </div>
         </div>
       </div>
     `;
+
+    const copyButton = paperCard.querySelector('.paper-card-copy');
+    if (copyButton) {
+      copyButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        handleCopyPaperLink(paper, copyButton);
+      });
+    }
     
     paperCard.addEventListener('click', () => {
       if (apsInfo) {
@@ -2008,8 +2148,9 @@ function showPaperDetails(paper, paperIndex) {
   // ---------------------------
 
   // 提示词来自：https://papers.cool/
-  prompt = `请你阅读这篇文章${pdfUrl},总结一下这篇文章解决的问题、相关工作、研究方法、做了什么实验及其结果、结论，最后整体总结一下这篇文章的内容`
-  document.getElementById('kimiChatLink').href = `https://www.kimi.com/_prefill_chat?prefill_prompt=${prompt}&system_prompt=你是一个学术助手，后面的对话将围绕着以下论文内容进行，已经通过链接给出了论文的PDF和论文已有的FAQ。用户将继续向你咨询论文的相关问题，请你作出专业的回答，不要出现第一人称，当涉及到分点回答时，鼓励你以markdown格式输出。&send_immediately=true&force_search=true`;
+  const prompt = `请你阅读这篇文章${pdfUrl},总结一下这篇文章解决的问题、相关工作、研究方法、做了什么实验及其结果、结论，最后整体总结一下这篇文章的内容`;
+  const systemPrompt = '你是一个学术助手，后面的对话将围绕着以下论文内容进行，已经通过链接给出了论文的PDF和论文已有的FAQ。用户将继续向你咨询论文的相关问题，请你作出专业的回答，不要出现第一人称，当涉及到分点回答时，鼓励你以markdown格式输出。';
+  document.getElementById('kimiChatLink').href = `https://www.kimi.com/_prefill_chat?prefill_prompt=${encodeURIComponent(prompt)}&system_prompt=${encodeURIComponent(systemPrompt)}&send_immediately=true&force_search=true`;
   
   // 更新论文位置信息
   const paperPosition = document.getElementById('paperPosition');
@@ -2158,6 +2299,7 @@ async function loadPapersByDateRange(startDate, endDate, requestId = activeDataR
   
   currentDate = `${startDate} to ${endDate}`;
   document.getElementById('currentDate').textContent = `${dataSource.showname || dataSource.name} · ${formatDate(startDate)} - ${formatDate(endDate)}`;
+  setDateStepButtonState();
   
   // 不再重置激活的关键词和作者
   // 而是保持当前选择状态
